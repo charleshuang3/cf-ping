@@ -1,0 +1,26 @@
+{
+  "name": "server-ping-monitor",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker to monitor server pings and send Telegram notifications.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "echo \"Error: no test specified yet\" && exit 1",
+    "migrate:local": "wrangler d1 execute <YOUR_DB_NAME> --local --file=./migrations/0001_create_server_status_table.sql",
+    "migrate:prod": "wrangler d1 execute <YOUR_DB_NAME> --file=./migrations/0001_create_server_status_table.sql"
+  },
+  "keywords": [
+    "cloudflare-worker",
+    "server-monitor",
+    "telegram",
+    "d1"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231025.0",
+    "typescript": "^5.2.2",
+    "wrangler": "^3.15.0"
+  }
+}

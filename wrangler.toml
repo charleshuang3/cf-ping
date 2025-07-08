@@ -1,0 +1,59 @@
+name = "server-ping-monitor"
+main = "src/index.ts"
+compatibility_date = "2023-10-30" # Or a more recent date
+
+# Cron trigger to run the scheduled task every minute
+triggers = [
+  { cron = "*/1 * * * *" }
+]
+
+# D1 database binding
+# Replace 'YOUR_D1_DATABASE_ID' with your actual D1 database ID.
+# You can create a D1 database using: wrangler d1 create <YOUR_DB_NAME>
+# And then find its ID in the .wrangler/state/v3/d1 directory or via `wrangler d1 info <YOUR_DB_NAME>`
+[[d1_databases]]
+binding = "DB" # This is how it's accessed in the Env interface (env.DB)
+database_name = "<YOUR_DB_NAME>" # Give your database a descriptive name
+database_id = "<YOUR_D1_DATABASE_ID>" # The actual ID of your D1 instance
+
+# Environment variables
+# These should be set in your Cloudflare dashboard or using `wrangler secret put VAR_NAME`
+# For local development, you can create a .dev.vars file (make sure it's in .gitignore)
+# Example .dev.vars content:
+# SERVERS="example.com,sub.example.com"
+# TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+# TELEGRAM_CHAT_ID="your_telegram_chat_id"
+# ACCESS_TOKEN="your_secure_access_token"
+
+[vars]
+# Default values (consider if these are safe as defaults or should only be secrets)
+# It's generally better to manage sensitive data like tokens via secrets.
+# SERVERS = "example.com" # Example, will be overridden by secrets or .dev.vars
+# TELEGRAM_BOT_TOKEN = "dummy_token"
+# TELEGRAM_CHAT_ID = "dummy_chat_id"
+# ACCESS_TOKEN = "dummy_access_token"
+
+# It is highly recommended to use secrets for sensitive data:
+# wrangler secret put SERVERS
+# wrangler secret put TELEGRAM_BOT_TOKEN
+# wrangler secret put TELEGRAM_CHAT_ID
+# wrangler secret put ACCESS_TOKEN
+
+# For local development with `wrangler dev --local`, create a .dev.vars file.
+# Ensure .dev.vars is in your .gitignore file.
+#
+# .dev.vars example:
+# SERVERS="server1.example.com,server2.example.com"
+# TELEGRAM_BOT_TOKEN="xxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# TELEGRAM_CHAT_ID="123456789"
+# ACCESS_TOKEN="a_very_secure_bearer_token_here"
+# DB_BINDING_NAME_FOR_DEV_VARS_ONLY = "<YOUR_DB_NAME>" # This is only for wrangler dev --local to pick up the local DB. It's not a standard var.
+# The actual binding for `env.DB` is configured via [[d1_databases]] above.
+# When running `wrangler dev --local`, wrangler will automatically create a local .wrangler/state/v3/d1/<YOUR_DB_NAME>-<ID>.sqlite file if it doesn't exist,
+# based on the database_name in the [[d1_databases]] section.
+# You'll need to run your migrations against this local DB:
+# wrangler d1 execute <YOUR_DB_NAME> --local --file=./migrations/0001_create_server_status_table.sql
+
+# Enable node_compat for better compatibility if using Node.js APIs explicitly
+# (though for this worker, it's likely not strictly needed yet)
+# node_compat = true
