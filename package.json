@@ -16,8 +16,8 @@
     "telegram",
     "d1"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "charleshuang3",
+  "license": "Apache-2.0",
   "dependencies": {
     "grammy": "^1.37.0",
     "itty-router": "^4.0.23"
