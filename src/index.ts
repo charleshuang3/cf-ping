@@ -11,7 +11,7 @@ interface AuthenticatedRequest extends IRequest {
 const router = Router();
 
 // Middleware: Authentication
-function authenticateRequest(request: IRequest, env: Env) {
+function authenticateRequest(request: IRequest, env: Env, ctx: ExecutionContext) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response('Unauthorized: Missing or invalid Authorization header', { status: 401 });
@@ -25,7 +25,7 @@ function authenticateRequest(request: IRequest, env: Env) {
 
 // Middleware: Validate server_name
 // Itty-router automatically parses query params into `request.query`
-function validateServerName(request: AuthenticatedRequest, env: Env) {
+function validateServerName(request: AuthenticatedRequest, env: Env, ctx: ExecutionContext) {
   const serverName = request.query?.server_name as string | undefined;
 
   if (!serverName) {
@@ -132,7 +132,7 @@ router.all('*', () => new Response('Not found.', { status: 404 }));
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // itty-router will handle the routing, including the /tgbot path
-    return router.handle(request, env, ctx);
+    return router.fetch(request, env, ctx);
   },
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
