@@ -167,10 +167,20 @@ Beyond automatic notifications, the worker also provides a Telegram bot interfac
 
 1.  **Configure your Telegram Bot:**
     -   Talk to the [BotFather](https://t.me/botfather) on Telegram.
-    -   Use the `/setwebhook` command. `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" -d "url=<YOUR_WORKER_URL>/tgbot"`
-    -   Provide the URL to your worker's `/tgbot` endpoint:
-        `https://your-worker-url.your-account.workers.dev/tgbot`
-        (Replace `your-worker-url.your-account.workers.dev` with your actual worker URL).
+    -   Use the `/setwebhook` command register your bot webhook. `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" -d "url=<YOUR_WORKER_URL>/tgbot"`
+    -   Register menu for your bot:
+    ```
+    curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{
+        "commands": [
+            {"command": "status", "description": "Get Server Status"}
+        ],
+        "scope": {"type": "default"},
+        "language_code": "en"
+    }' \
+    https://api.telegram.org/bot<BOT_TOKEN>/setMyCommands
+    ```
     -   Ensure your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` environment variables are correctly set for the worker. The bot will only respond to commands from the configured `TELEGRAM_CHAT_ID`.
 
 ### Commands
