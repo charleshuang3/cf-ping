@@ -1,5 +1,6 @@
 import { Env, ServerStatus } from './types';
 import { sendTelegramMessage } from './telegram';
+import { handleTelegramWebhook } from './telegramBot'; // Import the new handler
 import { Router, IRequest } from 'itty-router';
 
 // Extend IRequest to include our custom properties if needed
@@ -117,11 +118,20 @@ async function handleHelloPost(request: AuthenticatedRequest, env: Env, ctx: Exe
 // Note: itty-router executes middleware in order. If a middleware returns a Response, subsequent handlers are skipped.
 router.post('/hello', authenticateRequest, validateServerName, handleHelloPost);
 
+// Route for Telegram Bot Webhook
+// IMPORTANT: Telegram webhooks are POST requests.
+// Authentication is handled within the bot logic (checking TELEGRAM_CHAT_ID).
+router.post('/tgbot', (request: Request, env: Env, ctx: ExecutionContext) => {
+  // Directly pass the raw Request object and env to the webhook handler
+  return handleTelegramWebhook(request, env);
+});
+
 // Fallback for 404 - handles GET / as well now
 router.all('*', () => new Response('Not found.', { status: 404 }));
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // itty-router will handle the routing, including the /tgbot path
     return router.handle(request, env, ctx);
   },
 
