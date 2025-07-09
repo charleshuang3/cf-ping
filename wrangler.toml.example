@@ -33,27 +33,7 @@ database_id = "<YOUR_D1_DATABASE_ID>" # The actual ID of your D1 instance
 # TELEGRAM_CHAT_ID = "dummy_chat_id"
 # ACCESS_TOKEN = "dummy_access_token"
 
-# It is highly recommended to use secrets for sensitive data:
-# wrangler secret put SERVERS
-# wrangler secret put TELEGRAM_BOT_TOKEN
-# wrangler secret put TELEGRAM_CHAT_ID
-# wrangler secret put ACCESS_TOKEN
-
-# For local development with `wrangler dev --local`, create a .dev.vars file.
-# Ensure .dev.vars is in your .gitignore file.
-#
-# .dev.vars example:
-# SERVERS="server1.example.com,server2.example.com"
-# TELEGRAM_BOT_TOKEN="xxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxx"
-# TELEGRAM_CHAT_ID="123456789"
-# ACCESS_TOKEN="a_very_secure_bearer_token_here"
-# DB_BINDING_NAME_FOR_DEV_VARS_ONLY = "<YOUR_DB_NAME>" # This is only for wrangler dev --local to pick up the local DB. It's not a standard var.
-# The actual binding for `env.DB` is configured via [[d1_databases]] above.
-# When running `wrangler dev --local`, wrangler will automatically create a local .wrangler/state/v3/d1/<YOUR_DB_NAME>-<ID>.sqlite file if it doesn't exist,
-# based on the database_name in the [[d1_databases]] section.
-# You'll need to run your migrations against this local DB:
-# wrangler d1 execute <YOUR_DB_NAME> --local --file=./migrations/0001_create_server_status_table.sql
-
-# Enable node_compat for better compatibility if using Node.js APIs explicitly
-# (though for this worker, it's likely not strictly needed yet)
-# node_compat = true
+# Enable logging
+[observability]
+enabled = true
+head_sampling_rate = 1
