@@ -1,4 +1,4 @@
-name = "server-ping-monitor"
+name = "server-monitor"
 main = "src/index.ts"
 compatibility_date = "2023-10-30" # Or a more recent date
 
