@@ -155,3 +155,46 @@ curl -X POST \
 -   If a server is listed in the `SERVERS` environment variable but is not found in the D1 database, it will be added with a 'down' status, and a notification will be sent.
 
 This ensures that you are alerted even if a server completely fails and stops sending pings.
+
+## Telegram Bot Interface
+
+Beyond automatic notifications, the worker also provides a Telegram bot interface for on-demand server status checks.
+
+-   **Endpoint:** `/tgbot`
+-   **Method:** `POST` (This endpoint is designed to be used as a webhook for your Telegram bot)
+
+### Setup
+
+1.  **Configure your Telegram Bot:**
+    -   Talk to the [BotFather](https://t.me/botfather) on Telegram.
+    -   Use the `/setwebhook` command.
+    -   Provide the URL to your worker's `/tgbot` endpoint:
+        `https://your-worker-url.your-account.workers.dev/tgbot`
+        (Replace `your-worker-url.your-account.workers.dev` with your actual worker URL).
+    -   Ensure your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` environment variables are correctly set for the worker. The bot will only respond to commands from the configured `TELEGRAM_CHAT_ID`.
+
+### Commands
+
+-   **/status**: Send this command to your bot. The bot will reply with a list of all monitored servers (from the `SERVERS` environment variable) and their current status, including:
+    -   Current state ('UP', 'DOWN', or 'UP (Stale)' if pings are recent but older than the alert threshold).
+    -   Timestamp of the last received ping.
+    -   Timestamp of the last state change.
+
+    Example interaction:
+    ```
+    You: /status
+
+    Bot: *Server Status Report:*
+
+          *server1.example.com*
+          ✅ Status: *UP*
+            Last Ping: [Date & Time]
+            Last State Change: [Date & Time]
+
+          *server2.example.com*
+          ❗ Status: *DOWN*
+            Last Ping: [Date & Time]
+            Last State Change: [Date & Time]
+    ```
+
+This allows you to quickly check the health of all your servers directly from Telegram.
