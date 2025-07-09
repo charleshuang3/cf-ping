@@ -1,71 +1,62 @@
 import { Env, ServerStatus } from './types';
 import { sendTelegramMessage } from './telegram';
 import { handleTelegramWebhook } from './telegramBot'; // Import the new handler
-import { Router, IRequest } from 'itty-router';
+import { Hono } from 'hono';
+import { Context } from 'hono';
 
-// Extend IRequest to include our custom properties if needed
-interface AuthenticatedRequest extends IRequest {
-  serverName?: string; // To pass validated serverName from middleware
-}
-
-const router = Router();
+const app = new Hono<{ Bindings: Env }>();
 
 // Middleware: Authentication
-function authenticateRequest(request: IRequest, env: Env, ctx: ExecutionContext) {
-  const authHeader = request.headers.get('Authorization');
+async function authenticateRequest(c: Context, next: Function) {
+  const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response('Unauthorized: Missing or invalid Authorization header', { status: 401 });
+    return c.text('Unauthorized: Missing or invalid Authorization header', 401);
   }
   const token = authHeader.substring('Bearer '.length);
-  if (token !== env.ACCESS_TOKEN) {
-    return new Response('Unauthorized: Invalid token', { status: 401 });
+  if (token !== c.env.ACCESS_TOKEN) {
+    return c.text('Unauthorized: Invalid token', 401);
   }
-  // No explicit return means success for itty-router middleware.
+  await next();
 }
 
 // Middleware: Validate server_name
-// Itty-router automatically parses query params into `request.query`
-function validateServerName(request: AuthenticatedRequest, env: Env, ctx: ExecutionContext) {
-  const serverName = request.query?.server_name as string | undefined;
+async function validateServerName(c: Context, next: Function) {
+  const serverName = c.req.query('server_name');
 
   if (!serverName) {
-    return new Response('Bad Request: Missing server_name query parameter', { status: 400 });
+    return c.text('Bad Request: Missing server_name query parameter', 400);
   }
 
-  const allowedServers = env.SERVERS.split(',').map(s => s.trim());
+  const allowedServers = c.env.SERVERS.split(',').map((s: string) => s.trim());
   if (!allowedServers.includes(serverName)) {
-    return new Response(`Bad Request: Invalid server_name '${serverName}'. Allowed: ${allowedServers.join(', ')}`, { status: 400 });
+    return c.text(`Bad Request: Invalid server_name '${serverName}'. Allowed: ${allowedServers.join(', ')}`, 400);
   }
-  // Attach the validated serverName to the request object for the next handler
-  request.serverName = serverName;
+  c.set('serverName', serverName);
+  await next();
 }
 
-
 // Route Handler: POST /hello
-async function handleHelloPost(request: AuthenticatedRequest, env: Env, ctx: ExecutionContext): Promise<Response> {
-  // serverName is validated and attached by the validateServerName middleware
-  const serverName = request.serverName!; // Add "!" as serverName is guaranteed by middleware
+async function handleHelloPost(c: Context): Promise<Response> {
+  const serverName = c.get('serverName');
   const currentTime = Math.floor(Date.now() / 1000);
 
   try {
-    // Get current status from D1
-    let serverInfo: ServerStatus | null = await env.DB.prepare(
+    let serverInfo: ServerStatus | null = await c.env.DB.prepare(
       "SELECT server_name, last_hello_timestamp, last_state, last_state_change_timestamp FROM server_status WHERE server_name = ?"
     ).bind(serverName).first();
 
-    if (serverInfo) { // Server exists in DB
+    if (serverInfo) {
       const previousState = serverInfo.last_state;
       serverInfo.last_hello_timestamp = currentTime;
       serverInfo.last_state = 'up';
 
-      if (previousState === 'down') { // Server was down, now it's up
+      if (previousState === 'down') {
         const downTimeSeconds = currentTime - serverInfo.last_state_change_timestamp;
         const downTimeMinutes = Math.round(downTimeSeconds / 60);
         const downTimeDuration = downTimeSeconds < 60 ? `${downTimeSeconds}s` : `${downTimeMinutes}min`;
 
         serverInfo.last_state_change_timestamp = currentTime;
-        // Update D1
-        await env.DB.prepare(
+        await c.env.DB.prepare(
           "UPDATE server_status SET last_hello_timestamp = ?, last_state = ?, last_state_change_timestamp = ? WHERE server_name = ?"
         ).bind(
           serverInfo.last_hello_timestamp,
@@ -74,27 +65,25 @@ async function handleHelloPost(request: AuthenticatedRequest, env: Env, ctx: Exe
           serverName
         ).run();
 
-        // Send notification
         const message = `✅ Server *${serverName}* is back UP.\nIt was down for approximately ${downTimeDuration}.`;
-        ctx.waitUntil(sendTelegramMessage(env, message));
+        c.executionCtx.waitUntil(sendTelegramMessage(c.env, message));
         console.log(`Notification sent: ${serverName} is UP after being down for ${downTimeDuration}.`);
-        return new Response(`Hello received for ${serverName}. Server is now UP. Downtime was ${downTimeDuration}.`, { status: 200 });
-      } else { // Server still up, just update hello time
-        await env.DB.prepare(
+        return c.text(`Hello received for ${serverName}. Server is now UP. Downtime was ${downTimeDuration}.`, 200);
+      } else {
+        await c.env.DB.prepare(
           "UPDATE server_status SET last_hello_timestamp = ? WHERE server_name = ?"
         ).bind(serverInfo.last_hello_timestamp, serverName).run();
         console.log(`Hello received for ${serverName}. Status remains UP.`);
-        return new Response(`Hello received for ${serverName}. Status remains UP.`, { status: 200 });
+        return c.text(`Hello received for ${serverName}. Status remains UP.`, 200);
       }
-    } else { // New server, first time hello
+    } else {
       serverInfo = {
         server_name: serverName,
         last_hello_timestamp: currentTime,
         last_state: 'up',
         last_state_change_timestamp: currentTime,
       };
-      // Insert new server into D1
-      await env.DB.prepare(
+      await c.env.DB.prepare(
         "INSERT INTO server_status (server_name, last_hello_timestamp, last_state, last_state_change_timestamp) VALUES (?, ?, ?, ?)"
       ).bind(
         serverInfo.server_name,
@@ -102,37 +91,31 @@ async function handleHelloPost(request: AuthenticatedRequest, env: Env, ctx: Exe
         serverInfo.last_state,
         serverInfo.last_state_change_timestamp
       ).run();
-      // Send notification
       const message = `👋 Server *${serverName}* sent its first ping and is now marked UP.`;
-      ctx.waitUntil(sendTelegramMessage(env, message));
+      c.executionCtx.waitUntil(sendTelegramMessage(c.env, message));
       console.log(`Notification sent: ${serverName} is newly UP.`);
-      return new Response(`Hello received for new server ${serverName}. Marked as UP.`, { status: 201 });
+      return c.text(`Hello received for new server ${serverName}. Marked as UP.`, 201);
     }
   } catch (e: any) {
     console.error(`D1 Error in /hello for server ${serverName}:`, e.message, e.cause);
-    return new Response(`Database error processing ${serverName}: ${e.message}`, { status: 500 });
+    return c.text(`Database error processing ${serverName}: ${e.message}`, 500);
   }
 }
 
 // Register routes
-// Note: itty-router executes middleware in order. If a middleware returns a Response, subsequent handlers are skipped.
-router.post('/hello', authenticateRequest, validateServerName, handleHelloPost);
+app.post('/hello', authenticateRequest, validateServerName, handleHelloPost);
 
 // Route for Telegram Bot Webhook
-// IMPORTANT: Telegram webhooks are POST requests.
-// Authentication is handled within the bot logic (checking TELEGRAM_CHAT_ID).
-router.post('/tgbot', (request: Request, env: Env, ctx: ExecutionContext) => {
-  // Directly pass the raw Request object and env to the webhook handler
-  return handleTelegramWebhook(request, env);
+app.post('/tgbot', async (c) => {
+  return handleTelegramWebhook(c, c.env);
 });
 
-// Fallback for 404 - handles GET / as well now
-router.all('*', () => new Response('Not found.', { status: 404 }));
+// Fallback for 404
+app.all('*', (c) => c.text('Not found.', 404));
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // itty-router will handle the routing, including the /tgbot path
-    return router.fetch(request, env, ctx);
+    return app.fetch(request, env, ctx);
   },
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {

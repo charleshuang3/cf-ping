@@ -1,7 +1,8 @@
-import { Bot, Context, webhookCallback } from 'grammy';
+import { Bot, Context as GrammyContext, webhookCallback } from 'grammy';
 import { Env, ServerStatus } from './types'; // Assuming types.ts exists and is correctly defined
+import { Context as HonoContext } from 'hono'; // Import Hono's Context
 
-interface MyContext extends Context {
+interface MyContext extends GrammyContext {
   env: Env;
 }
 
@@ -80,8 +81,7 @@ export function createTelegramBot(env: Env) {
   return bot;
 }
 
-export async function handleTelegramWebhook(request: Request, env: Env) {
+export async function handleTelegramWebhook(c: HonoContext, env: Env) {
   const bot = createTelegramBot(env);
-  const callback = webhookCallback(bot, 'cloudflare-mod'); // 'cloudflare-mod' for CF Workers
-  return await callback(request);
+  return webhookCallback(bot, 'hono')(c);
 }
