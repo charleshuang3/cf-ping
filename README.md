@@ -24,7 +24,7 @@ This Cloudflare Worker monitors the status of your servers by listening for ping
 1.  **Clone the Repository:**
     ```bash
     git clone <your-repository-url>
-    cd server-ping-monitor
+    cd cf-ping
     ```
 
 2.  **Install Dependencies:**
