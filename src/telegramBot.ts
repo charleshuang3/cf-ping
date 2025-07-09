@@ -25,6 +25,22 @@ export function createTelegramBot(env: Env) {
     await next();
   });
 
+  function formatTimeDifference(seconds: number): string {
+    if (seconds < 60) {
+      return `${seconds} second${seconds === 1 ? '' : 's'}`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ${seconds % 60} second${seconds % 60 === 1 ? '' : 's'}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `${hours} hour${hours === 1 ? '' : 's'} ${minutes % 60} minute${minutes % 60 === 1 ? '' : 's'}`;
+    }
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ${hours % 24} hour${hours % 24 === 1 ? '' : 's'}`;
+  }
+
   bot.command('status', async (ctx) => {
     try {
       const serverNamesFromEnv = ctx.env.SERVERS.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -47,20 +63,39 @@ export function createTelegramBot(env: Env) {
         if (serverInfo) {
           let statusEmoji = serverInfo.last_state === 'up' ? '✅' : '❗';
           let stateDetail = serverInfo.last_state.toUpperCase();
-          const lastSeen = new Date(serverInfo.last_hello_timestamp * 1000).toLocaleString();
-          const lastChange = new Date(serverInfo.last_state_change_timestamp * 1000).toLocaleString();
+          let lastPingMessage = '';
+          let lastStateChangeMessage = '';
 
-          // Check if 'up' server is actually stale
-          if (serverInfo.last_state === 'up' && (currentTime - serverInfo.last_hello_timestamp > alertThresholdSeconds)) {
-            statusEmoji = '⚠️'; // Warning, potentially down
-            stateDetail = `UP (Stale, last ping > ${alertThresholdSeconds}s ago)`;
+          const oneWeekInSeconds = 7 * 24 * 60 * 60; // 1 week in seconds
+
+          if (serverInfo.last_state === 'up') {
+            // Check if 'up' server is actually stale
+            if (currentTime - serverInfo.last_hello_timestamp > alertThresholdSeconds) {
+              statusEmoji = '⚠️'; // Warning, potentially down
+              stateDetail = `UP (Stale, last ping > ${alertThresholdSeconds}s ago)`;
+              const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
+              lastPingMessage = `  Last Seen: ${formatTimeDifference(lastSeenDiff)} ago`;
+              lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
+            } else if (currentTime - serverInfo.last_state_change_timestamp > oneWeekInSeconds) {
+              // If server is up and last state change is > 1 week, just say server up
+              // No additional messages needed, lastPingMessage and lastStateChangeMessage remain empty
+            } else {
+              // Server is up and not stale, and state change is within 1 week
+              const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
+              lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
+            }
+          } else { // serverInfo.last_state === 'down'
+            const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
+            stateDetail = `DOWN`; // Ensure it explicitly says DOWN
+            lastPingMessage = `  Last Seen: ${formatTimeDifference(lastSeenDiff)} ago`;
+            lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
           }
 
           statusMessages.push(
             `\n*${serverName}*\n` +
-            `${statusEmoji} Status: *${stateDetail}*\n` +
-            `  Last Ping: ${lastSeen}\n` +
-            `  Last State Change: ${lastChange}`
+            `${statusEmoji} Status: *${stateDetail}*` +
+            (lastPingMessage ? `\n${lastPingMessage}` : '') +
+            (lastStateChangeMessage ? `\n${lastStateChangeMessage}` : '')
           );
         } else {
           statusMessages.push(
