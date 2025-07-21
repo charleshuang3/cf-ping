@@ -53,7 +53,7 @@ export function createTelegramBot(env: Env) {
       statusMessages.push("*Server Status Report:*");
 
       const currentTime = Math.floor(Date.now() / 1000);
-      const alertThresholdSeconds = 70; // Consistent with scheduled task
+      const alertThresholdSeconds = 90; // Consistent with scheduled task
 
       for (const serverName of serverNamesFromEnv) {
         const serverInfo: ServerStatus | null = await ctx.env.DB.prepare(
