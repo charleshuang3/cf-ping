@@ -151,7 +151,7 @@ curl -X POST \
 
 -   The worker has a scheduled task defined in `wrangler.toml` (e.g., `cron = "*/1 * * * *"` to run every minute).
 -   This task iterates through the servers listed in the `SERVERS` environment variable.
--   If a server is currently marked as 'up' but its `last_hello_timestamp` is older than a defined threshold (currently 70 seconds), it will be marked as 'down', and a Telegram notification will be sent.
+-   If a server is currently marked as 'up' but its `last_hello_timestamp` is older than a defined threshold (currently 90 seconds), it will be marked as 'down', and a Telegram notification will be sent.
 -   If a server is listed in the `SERVERS` environment variable but is not found in the D1 database, it will be added with a 'down' status, and a notification will be sent.
 
 This ensures that you are alerted even if a server completely fails and stops sending pings.
