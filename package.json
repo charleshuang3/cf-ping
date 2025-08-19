@@ -19,7 +19,7 @@
   "author": "charleshuang3",
   "license": "Apache-2.0",
   "dependencies": {
-    "grammy": "^1.37.0",
+    "grammy": "^1.38.1",
     "hono": "^4.8.4"
   },
   "devDependencies": {
