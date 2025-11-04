@@ -20,19 +20,12 @@ database_id = "<YOUR_D1_DATABASE_ID>" # The actual ID of your D1 instance
 # These should be set in your Cloudflare dashboard or using `wrangler secret put VAR_NAME`
 # For local development, you can create a .dev.vars file (make sure it's in .gitignore)
 # Example .dev.vars content:
+# [vars]
 # SERVERS="example.com,sub.example.com"
 # TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
 # TELEGRAM_CHAT_ID="your_telegram_chat_id"
 # ACCESS_TOKEN="your_secure_access_token"
 # ALERT_THRESHOLD_SECONDS="70"
-
-[vars]
-# Default values (consider if these are safe as defaults or should only be secrets)
-# It's generally better to manage sensitive data like tokens via secrets.
-# SERVERS = "example.com" # Example, will be overridden by secrets or .dev.vars
-# TELEGRAM_BOT_TOKEN = "dummy_token"
-# TELEGRAM_CHAT_ID = "dummy_chat_id"
-# ACCESS_TOKEN = "dummy_access_token"
 
 # Enable logging
 [observability]

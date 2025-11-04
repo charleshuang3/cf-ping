@@ -1,6 +1,7 @@
 import { Bot, Context as GrammyContext, webhookCallback } from 'grammy';
 import { Env, ServerStatus } from './types'; // Assuming types.ts exists and is correctly defined
 import { Context as HonoContext } from 'hono'; // Import Hono's Context
+import { formatTimeDifference } from './utils';
 
 interface MyContext extends GrammyContext {
   env: Env;
@@ -25,22 +26,7 @@ export function createTelegramBot(env: Env) {
     await next();
   });
 
-  function formatTimeDifference(seconds: number): string {
-    if (seconds < 60) {
-      return `${seconds} second${seconds === 1 ? '' : 's'}`;
-    }
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-      return `${minutes} minute${minutes === 1 ? '' : 's'} ${seconds % 60} second${seconds % 60 === 1 ? '' : 's'}`;
-    }
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return `${hours} hour${hours === 1 ? '' : 's'} ${minutes % 60} minute${minutes % 60 === 1 ? '' : 's'}`;
-    }
-    const days = Math.floor(hours / 24);
-    return `${days} day${days === 1 ? '' : 's'} ${hours % 24} hour${hours % 24 === 1 ? '' : 's'}`;
-  }
-
+  
   bot.command('status', async (ctx) => {
     try {
       const serverNamesFromEnv = ctx.env.SERVERS.split(',')
