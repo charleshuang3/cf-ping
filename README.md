@@ -22,6 +22,7 @@ This Cloudflare Worker monitors the status of your servers by listening for ping
 ## Setup Instructions
 
 1.  **Clone the Repository:**
+
     ```bash
     git clone https://github.com/charleshuang3/cf-ping
     cd cf-ping
@@ -38,13 +39,16 @@ This worker requires a Cloudflare D1 database to store server statuses.
 
 1.  **Create a D1 Database:**
     If you don't have one already, create it using Wrangler. Replace `<YOUR_DB_NAME>` with your desired database name (e.g., `server-monitor-db`).
+
     ```bash
     wrangler d1 create <YOUR_DB_NAME>
     ```
+
     This command will output the `database_name` and `database_id`.
 
 2.  **Configure `wrangler.toml`:**
     Open `wrangler.toml` and update the `[[d1_databases]]` section with the details from the previous step:
+
     ```toml
     [[d1_databases]]
     binding = "DB"
@@ -54,16 +58,16 @@ This worker requires a Cloudflare D1 database to store server statuses.
 
 3.  **Run Database Migrations:**
     The project includes a migration file to set up the necessary `server_status` table.
-    -   **For Local Development:** Update the `<YOUR_DB_NAME>` placeholder in the `package.json` script `migrate:local` if you haven't already.
-        ```bash
-        npm run migrate:local
-        # Example: wrangler d1 execute server-monitor-db --local --file=./migrations/0001_create_server_status_table.sql
-        ```
-    -   **For Production:** Update the `<YOUR_DB_NAME>` placeholder in the `package.json` script `migrate:prod`.
-        ```bash
-        npm run migrate:prod
-        # Example: wrangler d1 execute server-monitor-db --file=./migrations/0001_create_server_status_table.sql
-        ```
+    - **For Local Development:** Update the `<YOUR_DB_NAME>` placeholder in the `package.json` script `migrate:local` if you haven't already.
+      ```bash
+      npm run migrate:local
+      # Example: wrangler d1 execute server-monitor-db --local --file=./migrations/0001_create_server_status_table.sql
+      ```
+    - **For Production:** Update the `<YOUR_DB_NAME>` placeholder in the `package.json` script `migrate:prod`.
+      ```bash
+      npm run migrate:prod
+      # Example: wrangler d1 execute server-monitor-db --file=./migrations/0001_create_server_status_table.sql
+      ```
 
 ## Environment Variable Configuration
 
@@ -125,11 +129,11 @@ wrangler deploy
 
 Servers should be configured to send a POST request to the `/hello` endpoint of your deployed worker (or local instance) to indicate they are alive.
 
--   **Method:** `POST`
--   **URL:** `https://your-worker-url.your-account.workers.dev/hello?server_name=<your_server_hostname>`
-    (Replace `<your_server_hostname>` with the actual hostname of the server sending the ping, e.g., `server1.example.com`)
--   **Headers:**
-    -   `Authorization: Bearer <your_access_token>` (Replace `<your_access_token>` with the one you configured)
+- **Method:** `POST`
+- **URL:** `https://your-worker-url.your-account.workers.dev/hello?server_name=<your_server_hostname>`
+  (Replace `<your_server_hostname>` with the actual hostname of the server sending the ping, e.g., `server1.example.com`)
+- **Headers:**
+  - `Authorization: Bearer <your_access_token>` (Replace `<your_access_token>` with the one you configured)
 
 **Example using `curl`:**
 
@@ -149,10 +153,10 @@ curl -X POST \
 
 ## Scheduled Task
 
--   The worker has a scheduled task defined in `wrangler.toml` (e.g., `cron = "*/1 * * * *"` to run every minute).
--   This task iterates through the servers listed in the `SERVERS` environment variable.
--   If a server is currently marked as 'up' but its `last_hello_timestamp` is older than a defined threshold (currently 90 seconds), it will be marked as 'down', and a Telegram notification will be sent.
--   If a server is listed in the `SERVERS` environment variable but is not found in the D1 database, it will be added with a 'down' status, and a notification will be sent.
+- The worker has a scheduled task defined in `wrangler.toml` (e.g., `cron = "*/1 * * * *"` to run every minute).
+- This task iterates through the servers listed in the `SERVERS` environment variable.
+- If a server is currently marked as 'up' but its `last_hello_timestamp` is older than a defined threshold (currently 90 seconds), it will be marked as 'down', and a Telegram notification will be sent.
+- If a server is listed in the `SERVERS` environment variable but is not found in the D1 database, it will be added with a 'down' status, and a notification will be sent.
 
 This ensures that you are alerted even if a server completely fails and stops sending pings.
 
@@ -160,15 +164,16 @@ This ensures that you are alerted even if a server completely fails and stops se
 
 Beyond automatic notifications, the worker also provides a Telegram bot interface for on-demand server status checks.
 
--   **Endpoint:** `/tgbot`
--   **Method:** `POST` (This endpoint is designed to be used as a webhook for your Telegram bot)
+- **Endpoint:** `/tgbot`
+- **Method:** `POST` (This endpoint is designed to be used as a webhook for your Telegram bot)
 
 ### Setup
 
 1.  **Configure your Telegram Bot:**
-    -   Talk to the [BotFather](https://t.me/botfather) on Telegram.
-    -   Use the `/setwebhook` command register your bot webhook. `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" -d "url=<YOUR_WORKER_URL>/tgbot"`
-    -   Register menu for your bot:
+    - Talk to the [BotFather](https://t.me/botfather) on Telegram.
+    - Use the `/setwebhook` command register your bot webhook. `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" -d "url=<YOUR_WORKER_URL>/tgbot"`
+    - Register menu for your bot:
+
     ```
     curl -s -X POST \
     -H "Content-Type: application/json" \
@@ -181,30 +186,32 @@ Beyond automatic notifications, the worker also provides a Telegram bot interfac
     }' \
     https://api.telegram.org/bot<BOT_TOKEN>/setMyCommands
     ```
-    -   Ensure your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` environment variables are correctly set for the worker. The bot will only respond to commands from the configured `TELEGRAM_CHAT_ID`.
+
+    - Ensure your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` environment variables are correctly set for the worker. The bot will only respond to commands from the configured `TELEGRAM_CHAT_ID`.
 
 ### Commands
 
--   **/status**: Send this command to your bot. The bot will reply with a list of all monitored servers (from the `SERVERS` environment variable) and their current status, including:
-    -   Current state ('UP', 'DOWN', or 'UP (Stale)' if pings are recent but older than the alert threshold).
-    -   Timestamp of the last received ping.
-    -   Timestamp of the last state change.
+- **/status**: Send this command to your bot. The bot will reply with a list of all monitored servers (from the `SERVERS` environment variable) and their current status, including:
+  - Current state ('UP', 'DOWN', or 'UP (Stale)' if pings are recent but older than the alert threshold).
+  - Timestamp of the last received ping.
+  - Timestamp of the last state change.
 
-    Example interaction:
-    ```
-    You: /status
+  Example interaction:
 
-    Bot: *Server Status Report:*
+  ```
+  You: /status
 
-          *server1.example.com*
-          ✅ Status: *UP*
-            Last Ping: [Date & Time]
-            Last State Change: [Date & Time]
+  Bot: *Server Status Report:*
 
-          *server2.example.com*
-          ❗ Status: *DOWN*
-            Last Ping: [Date & Time]
-            Last State Change: [Date & Time]
-    ```
+        *server1.example.com*
+        ✅ Status: *UP*
+          Last Ping: [Date & Time]
+          Last State Change: [Date & Time]
+
+        *server2.example.com*
+        ❗ Status: *DOWN*
+          Last Ping: [Date & Time]
+          Last State Change: [Date & Time]
+  ```
 
 This allows you to quickly check the health of all your servers directly from Telegram.

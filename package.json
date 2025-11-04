@@ -8,7 +8,9 @@
     "deploy": "wrangler deploy",
     "test": "echo \"Error: no test specified yet\" && exit 1",
     "migrate:local": "wrangler d1 execute <YOUR_DB_NAME> --local --file=./migrations/0001_create_server_status_table.sql",
-    "migrate:prod": "wrangler d1 execute <YOUR_DB_NAME> --file=./migrations/0001_create_server_status_table.sql"
+    "migrate:prod": "wrangler d1 execute <YOUR_DB_NAME> --file=./migrations/0001_create_server_status_table.sql",
+    "check": "npx prettier --check . && npx eslint .",
+    "format": "npx prettier --write ."
   },
   "keywords": [
     "cloudflare-worker",
@@ -24,7 +26,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250709.0",
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "jiti": "^2.6.1",
+    "prettier": "^3.6.2",
     "typescript": "^5.8.0",
+    "typescript-eslint": "^8.46.3",
     "wrangler": "^4.24.0"
   }
 }

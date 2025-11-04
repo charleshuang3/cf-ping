@@ -19,7 +19,7 @@ export function createTelegramBot(env: Env) {
   bot.use(async (ctx, next) => {
     if (ctx.chat?.id.toString() !== env.TELEGRAM_CHAT_ID) {
       console.log(`Unauthorized access attempt from chat ID: ${ctx.chat?.id}`);
-      await ctx.reply("Sorry, you are not authorized to use this bot.");
+      await ctx.reply('Sorry, you are not authorized to use this bot.');
       return;
     }
     await next();
@@ -43,22 +43,26 @@ export function createTelegramBot(env: Env) {
 
   bot.command('status', async (ctx) => {
     try {
-      const serverNamesFromEnv = ctx.env.SERVERS.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const serverNamesFromEnv = ctx.env.SERVERS.split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       if (serverNamesFromEnv.length === 0) {
-        await ctx.reply("No servers configured to monitor.");
+        await ctx.reply('No servers configured to monitor.');
         return;
       }
 
-      let statusMessages: string[] = [];
-      statusMessages.push("*Server Status Report:*");
+      const statusMessages: string[] = [];
+      statusMessages.push('*Server Status Report:*');
 
       const currentTime = Math.floor(Date.now() / 1000);
       const alertThresholdSeconds = 90; // Consistent with scheduled task
 
       for (const serverName of serverNamesFromEnv) {
         const serverInfo: ServerStatus | null = await ctx.env.DB.prepare(
-          "SELECT server_name, last_hello_timestamp, last_state, last_state_change_timestamp FROM server_status WHERE server_name = ?"
-        ).bind(serverName).first();
+          'SELECT server_name, last_hello_timestamp, last_state, last_state_change_timestamp FROM server_status WHERE server_name = ?',
+        )
+          .bind(serverName)
+          .first();
 
         if (serverInfo) {
           let statusEmoji = serverInfo.last_state === 'up' ? '✅' : '❗';
@@ -73,41 +77,37 @@ export function createTelegramBot(env: Env) {
             if (currentTime - serverInfo.last_hello_timestamp > alertThresholdSeconds) {
               statusEmoji = '⚠️'; // Warning, potentially down
               stateDetail = `UP (Stale, last ping > ${alertThresholdSeconds}s ago)`;
-              const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
-              lastPingMessage = `  Last Seen: ${formatTimeDifference(lastSeenDiff)} ago`;
+              lastPingMessage = `  Last Seen: ${formatTimeDifference(currentTime - serverInfo.last_hello_timestamp)} ago`;
               lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
             } else if (currentTime - serverInfo.last_state_change_timestamp > oneWeekInSeconds) {
               // If server is up and last state change is > 1 week, just say server up
               // No additional messages needed, lastPingMessage and lastStateChangeMessage remain empty
             } else {
               // Server is up and not stale, and state change is within 1 week
-              const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
               lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
             }
-          } else { // serverInfo.last_state === 'down'
-            const lastSeenDiff = currentTime - serverInfo.last_hello_timestamp;
+          } else {
+            // serverInfo.last_state === 'down'
             stateDetail = `DOWN`; // Ensure it explicitly says DOWN
-            lastPingMessage = `  Last Seen: ${formatTimeDifference(lastSeenDiff)} ago`;
+            lastPingMessage = `  Last Seen: ${formatTimeDifference(currentTime - serverInfo.last_hello_timestamp)} ago`;
             lastStateChangeMessage = `  Last State Change: ${formatTimeDifference(currentTime - serverInfo.last_state_change_timestamp)} ago`;
           }
 
           statusMessages.push(
             `\n*${serverName}*\n` +
-            `${statusEmoji} Status: *${stateDetail}*` +
-            (lastPingMessage ? `\n${lastPingMessage}` : '') +
-            (lastStateChangeMessage ? `\n${lastStateChangeMessage}` : '')
+              `${statusEmoji} Status: *${stateDetail}*` +
+              (lastPingMessage ? `\n${lastPingMessage}` : '') +
+              (lastStateChangeMessage ? `\n${lastStateChangeMessage}` : ''),
           );
         } else {
-          statusMessages.push(
-            `\n*${serverName}*\n` +
-            `❓ Status: *UNKNOWN* (Not found in database)`
-          );
+          statusMessages.push(`\n*${serverName}*\n` + `❓ Status: *UNKNOWN* (Not found in database)`);
         }
       }
       await ctx.reply(statusMessages.join('\n'), { parse_mode: 'Markdown' });
-    } catch (error: any) {
-      console.error("Error processing /status command:", error);
-      await ctx.reply("Sorry, there was an error fetching the server status.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error processing /status command:', errorMessage);
+      await ctx.reply('Sorry, there was an error fetching the server status.');
     }
   });
 
