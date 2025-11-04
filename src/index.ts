@@ -4,6 +4,19 @@ import { handleTelegramWebhook } from './telegramBot'; // Import the new handler
 import { Hono } from 'hono';
 import { Context } from 'hono';
 
+// Helper function to convert seconds to human-readable format
+function formatDuration(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
+  return `${remainingSeconds}s`;
+}
+
 const app = new Hono<{ Bindings: Env }>();
 
 // Middleware: Authentication
@@ -49,13 +62,13 @@ async function handleHelloPost(c: Context): Promise<Response> {
 
     if (serverInfo) {
       const previousState = serverInfo.last_state;
+      const last_hello_timestamp = serverInfo.last_hello_timestamp;
       serverInfo.last_hello_timestamp = currentTime;
       serverInfo.last_state = 'up';
 
       if (previousState === 'down') {
-        const downTimeSeconds = currentTime - serverInfo.last_state_change_timestamp;
-        const downTimeMinutes = Math.round(downTimeSeconds / 60);
-        const downTimeDuration = downTimeSeconds < 60 ? `${downTimeSeconds}s` : `${downTimeMinutes}min`;
+        const downTimeSeconds = currentTime - last_hello_timestamp;
+        const downTimeDuration = formatDuration(downTimeSeconds);
 
         serverInfo.last_state_change_timestamp = currentTime;
         await c.env.DB.prepare(
