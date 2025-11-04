@@ -144,7 +144,7 @@ export default {
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
     const currentTime = Math.floor(Date.now() / 1000);
-    const alertThresholdSeconds = 70; // Consider a server down if no hello for > 70 seconds (to allow for slight delays)
+    const alertThresholdSeconds = env.ALERT_THRESHOLD_SECONDS; // Consider a server down if no hello for > X seconds
 
     for (const serverName of serverNamesFromEnv) {
       try {

@@ -24,6 +24,7 @@ database_id = "<YOUR_D1_DATABASE_ID>" # The actual ID of your D1 instance
 # TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
 # TELEGRAM_CHAT_ID="your_telegram_chat_id"
 # ACCESS_TOKEN="your_secure_access_token"
+# ALERT_THRESHOLD_SECONDS="70"
 
 [vars]
 # Default values (consider if these are safe as defaults or should only be secrets)
